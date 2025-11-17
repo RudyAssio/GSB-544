@@ -1,0 +1,139 @@
+---
+title: Practice 8.1
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+---
+
+```{python}
+import sklearn
+import pandas as pd
+import numpy as np
+import pandas as pd
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from palmerpenguins import load_penguins
+df = load_penguins()
+```
+
+```{python}
+
+df_dummied = pd.get_dummies(df, columns=['species', 'island', 'sex'], dummy_na=False)
+display(df_dummied.head())
+```
+
+```{python}
+df_cleaned = df_dummied.drop(columns=['year']).dropna()
+X = df_cleaned.drop(columns=['bill_depth_mm'])
+y = df_cleaned['bill_depth_mm']
+```
+
+```{python}
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
+from sklearn.pipeline import Pipeline
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+linear_pipeline = Pipeline([
+    ('regressor', LinearRegression())
+])
+linear_pipeline.fit(X_train, y_train)
+
+y_train_pred_lr = linear_pipeline.predict(X_train)
+y_test_pred_lr = linear_pipeline.predict(X_test)
+
+r2_train_lr = r2_score(y_train, y_train_pred_lr)
+r2_test_lr = r2_score(y_test, y_test_pred_lr)
+
+print(f"Linear Regression - Training R2: {r2_train_lr:.3f}")
+print(f"Linear Regression - Test R2: {r2_test_lr:.3f}")
+```
+```{python}
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.pipeline import Pipeline
+
+
+# kNN Model 1 K=3
+knn_pipeline_3 = Pipeline([
+    ('regressor', KNeighborsRegressor(n_neighbors=3))
+])
+knn_pipeline_3.fit(X_train, y_train)
+
+y_train_pred_knn3 = knn_pipeline_3.predict(X_train)
+y_test_pred_knn3 = knn_pipeline_3.predict(X_test)
+
+r2_train_knn3 = r2_score(y_train, y_train_pred_knn3)
+r2_test_knn3 = r2_score(y_test, y_test_pred_knn3)
+
+print(f"kNN (K=3) - Training R2: {r2_train_knn3:.3f}")
+print(f"kNN (K=3) - Test R2: {r2_test_knn3:.3f}")
+
+# kNN Model 2 K=10
+knn_pipeline_10 = Pipeline([
+    ('regressor', KNeighborsRegressor(n_neighbors=10))
+])
+knn_pipeline_10.fit(X_train, y_train)
+
+y_train_pred_knn10 = knn_pipeline_10.predict(X_train)
+y_test_pred_knn10 = knn_pipeline_10.predict(X_test)
+
+r2_train_knn10 = r2_score(y_train, y_train_pred_knn10)
+r2_test_knn10 = r2_score(y_test, y_test_pred_knn10)
+print(f"kNN (K=10) - Training R2: {r2_train_knn10:.3f}")
+print(f"kNN (K=10) - Test R2: {r2_test_knn10:.3f}")
+```
+```{python}
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.pipeline import Pipeline
+
+# Decision Tree Model
+dt_pipeline = Pipeline([
+    ('regressor', DecisionTreeRegressor(random_state=42))
+])
+dt_pipeline.fit(X_train, y_train)
+
+y_train_pred_dt = dt_pipeline.predict(X_train)
+y_test_pred_dt = dt_pipeline.predict(X_test)
+
+r2_train_dt = r2_score(y_train, y_train_pred_dt)
+r2_test_dt = r2_score(y_test, y_test_pred_dt)
+
+print(f"Decision Tree - Training R2: {r2_train_dt:.3f}")
+print(f"Decision Tree - Test R2: {r2_test_dt:.3f}")
+```
+
+```{python}
+r2_df = pd.DataFrame({
+    'Model': ['Linear Regression', 'kNN (K=3)', 'kNN (K=10)', 'Decision Tree'],
+    'Training R2': [r2_train_lr, r2_train_knn3, r2_train_knn10, r2_train_dt],
+    'Test R2': [r2_test_lr, r2_test_knn3, r2_test_knn10, r2_test_dt]
+})
+```
+```{python}
+from plotnine import ggplot, aes, geom_col, labs, theme_minimal, scale_fill_manual, position_dodge
+from plotnine.geoms import geom_hline
+import pandas as pd
+
+
+r2_df_long = r2_df.melt(id_vars='Model', var_name='Metric', value_name='R2_Score')
+
+
+plot = (
+    ggplot(r2_df_long, aes(x='Model', y='R2_Score', fill='Metric'))
+    + geom_col(position=position_dodge(width=0.8), width=0.7)
+    + labs(
+        title='Training and Test R-squared Scores for Different Models',
+        y='R-squared Score',
+        x='Model',
+        fill='Metric'
+    )
+    + theme_minimal()
+    + scale_fill_manual(values={'Training R2': '#1f77b4', 'Test R2': '#ff7f0e'})
+    + geom_hline(yintercept=0, linetype='dashed', color='gray')
+)
+plot
+```
